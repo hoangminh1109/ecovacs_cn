@@ -1,0 +1,11 @@
+{
+  "domain": "ecovacs_cn",
+  "name": "Ecovacs CN Domestic",
+  "version": "0.1.0",
+  "documentation": "https://github.com/hoangminh1109/ecovacs_cn",
+  "issue_tracker": "https://github.com/hoangminh1109/ecovacs_cn/issues",
+  "requirements": [],
+  "codeowners": ["hoangminh1109"],
+  "config_flow": true,
+  "iot_class": "cloud_polling"
+}
