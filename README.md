@@ -56,13 +56,19 @@ The API Key provided by the Ecovacs Open Platform has a hard limit of **90 days*
 
 ## 🛠️ Usage
 
-Once installed, buttons and sensors will be created under your robot's name. They can be used to on dashboard, automation, scripts as you like.
+Once installed, control buttons and status sensors will be created under your robot's name. They can be used in dashboards, automations, scripts as you like.
+
+## 🔍 Testing
+
+This custom integration has been tested on:
+- Ecovacs Deebot T5 Neo (DX55) domestic version (the only one I have 😆)
+
+Any user is welcome to test on yours, and create an issue if you find any problem.
 
 ## 📖 Refererence
 
 - [Ecovacs Open Platform](https://open.ecovacs.cn)
 - [ecovacs-mcp](https://github.com/ecovacs-ai/ecovacs-mcp)
 
-
 ## ⚠️ Disclaimer
-This is a custom integration and is not affiliated with or endorsed by Imou. Use at your own risk.
+This is a custom integration and is not affiliated with or endorsed by Ecovacs. Use at your own risk.
