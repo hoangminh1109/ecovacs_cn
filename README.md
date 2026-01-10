@@ -3,11 +3,11 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
-**Ecovacs CN Domestic** (`ecovacs_cn`) is a custom Home Assistant integration developed for **domestic (Mainlain China-region) Ecovacs cleaning robots**.
-
 **_This project is maintained in my free time. A coffee ☕ is always appreciated!_**
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/hoangminh1109)
+
+**Ecovacs CN Domestic** (`ecovacs_cn`) is a custom Home Assistant integration developed for **domestic (Mainlain China-region) Ecovacs cleaning robots**.
 
 ## 🤔 Why this exists?
 
