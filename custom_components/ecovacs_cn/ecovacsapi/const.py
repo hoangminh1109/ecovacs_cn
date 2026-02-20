@@ -6,7 +6,6 @@ MAX_RETRIES = 3
 
 # defaults
 DEFAULT_API_URL = "https://open.ecovacs.cn"
-API_KEY = "FLpgn3WUF2jOErI8upubZgzEQfmVjGlC"
 
 # end points
 ENDPOINT_DEVICE_LIST = "robot/deviceList"
