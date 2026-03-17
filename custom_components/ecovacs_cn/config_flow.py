@@ -120,3 +120,46 @@ class EcovacsFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             errors=self._errors,
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return EcovacsOptionsFlowHandler()
+
+
+class EcovacsOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle Ecovacs options."""
+
+    @property
+    def config_entry(self):
+        return self.hass.config_entries.async_get_entry(self.handler)
+
+    async def async_step_init(self, user_input=None):
+        """Manage the options."""
+        errors = {}
+
+        if user_input is not None:
+            new_data = dict(self.config_entry.data)
+            new_data.update(user_input)
+
+            self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+
+            return self.async_create_entry(title="", data={})
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_API_URL,
+                        default=self.config_entry.data.get(CONF_API_URL, DEFAULT_API_URL)
+                    ): str,
+                    vol.Required(
+                        CONF_API_KEY,
+                        default=self.config_entry.data.get(CONF_API_KEY, "")
+                    ): str,
+                }
+            ),
+            errors=errors,
+        )

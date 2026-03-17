@@ -42,11 +42,17 @@ class EcovacsEntity(CoordinatorEntity):
     @property
     def available(self) -> bool:
         """Entity available."""
+
+        if not self.coordinator.last_update_success:
+            return False
+
         # if the availability of the sensor is set, return it
         if self.entity_available is not None:
             return self.entity_available
+
         # otherwise return the availability of the device
         # return self.coordinator.device.get_status()
+
         return True
 
     @property
