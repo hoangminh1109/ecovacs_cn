@@ -17,7 +17,7 @@ OPTION_SCAN_INTERVAL = "scan_interval"
 
 # Defaults
 DEFAULT_API_URL = "https://open.ecovacs.cn"
-DEFAULT_SCAN_INTERVAL = 15
+DEFAULT_SCAN_INTERVAL = 30
 
 # icons of the sensors
 SENSOR_ICONS = {

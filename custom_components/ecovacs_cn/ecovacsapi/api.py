@@ -5,6 +5,8 @@ import logging
 import json
 import re
 
+import asyncio
+
 from aiohttp import ClientSession
 
 from .const import (
@@ -220,9 +222,45 @@ class EcovacsAPIClient:
 
         return  result_ctl_data
 
+    async def _async_execute_control_command(self, api: str, payload: dict, action_name: str) -> dict:
+        max_retries = 3
+        last_exception = None
+
+        for attempt in range(max_retries):
+            try:
+                _LOGGER.debug(
+                    "Executing %s (Attempt %d/%d) with payload: %s",
+                    action_name, attempt + 1, max_retries, payload
+                )
+
+                response = await self._async_call_api(api, payload)
+                return self.check_ctl_response(response)
+
+            except CommandError as err:
+                last_exception = err
+                _LOGGER.warning(
+                    "Command %s failed (Attempt %d/%d): CommandError %s",
+                    action_name, attempt + 1, max_retries, str(err)
+                )
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(1.5)
+                    continue
+            except EcovacsException as err:
+                last_exception = err
+                _LOGGER.warning(
+                    "Command %s failed (Attempt %d/%d): EcovacsException %s",
+                    action_name, attempt + 1, max_retries, str(err)
+                )
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2)
+                    continue
+                raise
+
+        _LOGGER.error("All %d attempts failed for %s", max_retries, action_name)
+        raise last_exception
+
     async def async_api_setCleaning(self, nickName: str, action: str) -> dict:  # pylint: disable=invalid-name
-        """Control cleaning \
-            action: start/pause/resume/stop. """
+        """Control cleaning (action: start/pause/resume/stop)."""
         # define the api endpoint
         api = ENDPOINT_CONTROL
         # prepare the payload
@@ -232,30 +270,26 @@ class EcovacsAPIClient:
             "cmd": CMD_CLEAN,
             "act": act,
         }
-        _LOGGER.debug(
-            "Cleaning act %s - %s", action, act )
-        # call the api
-        response =  await self._async_call_api(api, payload)
-        return self.check_ctl_response(response)
+        _LOGGER.debug("Cleaning act %s - %s", action, act)
+        return await self._async_execute_control_command(api, payload, f"setCleaning:{action}")
+
 
     async def async_api_setCharging(self, nickName: str, action: str) -> dict:  # pylint: disable=invalid-name
-        """Control charging \
-            action: return_dock / cancel_return. """
+        """Control charging (action: return_dock / cancel_return)."""
         # define the api endpoint
-        api = "robot/ctl"
+        api = ENDPOINT_CONTROL
         # prepare the payload
+        act = CHARGE_ACTIONS.get(action, CHARGE_ACTIONS["cancel_return"])
         payload = {
             "nickName": nickName,
             "cmd": CMD_CHARGE,
-            "act": CHARGE_ACTIONS.get(action, CHARGE_ACTIONS["cancel_return"]),
+            "act": act,
         }
-        # call the api
-        response =  await self._async_call_api(api, payload)
-        return self.check_ctl_response(response)
+        _LOGGER.debug("Charging act %s - %s", action, act)
+        return await self._async_execute_control_command(api, payload, f"setCharging:{action}")
 
     async def async_api_getCleanState(self, nickName: str) -> dict:  # pylint: disable=invalid-name
-        """Get cleaning state \
-            return: s-cleaning, p-paused, h-idle. """
+        """Get cleaning state (return: s-cleaning, p-paused, h-idle)."""
         # define the api endpoint
         api = ENDPOINT_CONTROL
         # prepare the payload
@@ -264,17 +298,14 @@ class EcovacsAPIClient:
             "cmd": CMD_GETCLEANSTATE,
             "act": "",
         }
-        # call the api
-        response =  await self._async_call_api(api, payload)
-        return self.check_ctl_response(response)
+        return await self._async_execute_control_command(api, payload, f"getCleanState:{nickName}")
 
     def api_translateCleanState(self, state_data: dict) -> str:
         state = state_data["st"]
         return CLEAN_STATES.get(state, "Unknown")
 
     async def async_api_getChargeState(self, nickName: str) -> dict:  # pylint: disable=invalid-name
-        """Get charging state \
-            return: Idle, SlotCharging, WireCharging. """
+        """Get charging state (return: Idle, SlotCharging, WireCharging)."""
         # define the api endpoint
         api = ENDPOINT_CONTROL
         # prepare the payload
@@ -283,9 +314,7 @@ class EcovacsAPIClient:
             "cmd": CMD_GETCHARGESTATE,
             "act": "",
         }
-        # call the api
-        response =  await self._async_call_api(api, payload)
-        return self.check_ctl_response(response)
+        return await self._async_execute_control_command(api, payload, f"getChargeState:{nickName}")
 
     def api_translateChargeState(self, state_data: dict) -> str:
         state = state_data["type"]
