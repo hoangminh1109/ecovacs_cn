@@ -122,21 +122,19 @@ class EcovacsSensor(EcovacsEntity):
 
         # status sensor
         if self._sensor_type == "cleanState":
-            # get the device and channel status
             clean_state_data = await self.api_client.async_api_getCleanState(self._device_name)
             if "ret" not in clean_state_data:
                 raise InvalidResponse(f"state not found in {clean_state_data}")
             if clean_state_data["ret"] == "ok":
-                self._state = CLEAN_STATES.get(clean_state_data["st"], "unknown")
+                self._state = self.api_client.api_translateCleanState(clean_state_data)
 
         # status sensor
         if self._sensor_type == "chargeState":
-            # get the device and channel status
             charge_state_data = await self.api_client.async_api_getChargeState(self._device_name)
             if "ret" not in charge_state_data:
                 raise InvalidResponse(f"state not found in {charge_state_data}")
             if charge_state_data["ret"] == "ok":
-                self._state = charge_state_data["type"]
+                self._state = self.api_client.api_translateChargeState(charge_state_data)
 
 
         _LOGGER.debug(
