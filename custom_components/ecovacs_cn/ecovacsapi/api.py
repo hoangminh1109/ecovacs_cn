@@ -16,11 +16,13 @@ from .const import (
     ENDPOINT_CONTROL,
     CMD_CLEAN,
     CMD_CHARGE,
-    CMD_GETCLEANSTATE,
-    CMD_GETCHARGESTATE,
+    CMD_GETWORKSTATE,
+    CMD_GETCLEANSTATE_LEGACY,
+    CMD_GETCHARGESTATE_LEGACY,
     CLEAN_ACTIONS,
     CHARGE_ACTIONS,
-    CLEAN_STATES
+    CLEAN_STATES,
+    CHARGE_STATES,
 )
 from .exceptions import (
     APIError,
@@ -288,34 +290,64 @@ class EcovacsAPIClient:
         _LOGGER.debug("Charging act %s - %s", action, act)
         return await self._async_execute_control_command(api, payload, f"setCharging:{action}")
 
-    async def async_api_getCleanState(self, nickName: str) -> dict:  # pylint: disable=invalid-name
-        """Get cleaning state (return: s-cleaning, p-paused, h-idle)."""
-        # define the api endpoint
-        api = ENDPOINT_CONTROL
-        # prepare the payload
+    async def _async_get_work_state(self, nickName: str) -> dict:  # pylint: disable=invalid-name
+        """查询机器人工作状态。
+
+        科沃斯官方 ecovacs-mcp 使用 GetWorkState，一次返回清扫/充电/基站状态。
+        若云端不支持该命令（返回 fail），则回退到旧的 GetCleanState / GetChargeState。
+        任何情况下都返回 check_ctl_response 解包后的状态字典（形如
+        {"ret": "ok", "cleanSt": ..., "chargeSt": ..., "stationSt": ...}）。
+        """
         payload = {
             "nickName": nickName,
-            "cmd": CMD_GETCLEANSTATE,
+            "cmd": CMD_GETWORKSTATE,
             "act": "",
         }
-        return await self._async_execute_control_command(api, payload, f"getCleanState:{nickName}")
+        try:
+            return await self._async_execute_control_command(
+                api=ENDPOINT_CONTROL,
+                payload=payload,
+                action_name=f"getWorkState:{nickName}",
+            )
+        except CommandError as err:
+            _LOGGER.warning(
+                "GetWorkState 失败 (%s)，尝试旧命令 GetCleanState 作为回退", err
+            )
+            legacy = {
+                "nickName": nickName,
+                "cmd": CMD_GETCLEANSTATE_LEGACY,
+                "act": "",
+            }
+            return await self._async_execute_control_command(
+                api=ENDPOINT_CONTROL,
+                payload=legacy,
+                action_name=f"getCleanState:{nickName}",
+            )
 
-    def api_translateCleanState(self, state_data: dict) -> str:
-        state = state_data["st"]
-        return CLEAN_STATES.get(state, "Unknown")
+    # 保留旧方法名，兼容 device.py / device_entity.py 的调用点
+    async def async_api_getCleanState(self, nickName: str) -> dict:  # pylint: disable=invalid-name
+        """Get cleaning state (new: cleanSt, legacy: st)."""
+        return await self._async_get_work_state(nickName)
 
     async def async_api_getChargeState(self, nickName: str) -> dict:  # pylint: disable=invalid-name
-        """Get charging state (return: Idle, SlotCharging, WireCharging)."""
-        # define the api endpoint
-        api = ENDPOINT_CONTROL
-        # prepare the payload
-        payload = {
-            "nickName": nickName,
-            "cmd": CMD_GETCHARGESTATE,
-            "act": "",
-        }
-        return await self._async_execute_control_command(api, payload, f"getChargeState:{nickName}")
+        """Get charging state (new: chargeSt, legacy: type)."""
+        return await self._async_get_work_state(nickName)
 
-    def api_translateChargeState(self, state_data: dict) -> str:
-        state = state_data["type"]
-        return state
+    @staticmethod
+    def api_translateCleanState(state_data: dict) -> str:
+        """把工作状态码翻译成可读文本，兼容新旧字段。"""
+        # 官方 GetWorkState 用 cleanSt，旧命令用 st
+        state = state_data.get("cleanSt", state_data.get("st"))
+        if state is None:
+            return "Unknown"
+        return CLEAN_STATES.get(state, state)
+
+    @staticmethod
+    def api_translateChargeState(state_data: dict) -> str:
+        """把充电状态码翻译成可读文本，兼容新旧字段。"""
+        # 官方 GetWorkState 用 chargeSt，旧命令用 type
+        state = state_data.get("chargeSt", state_data.get("type"))
+        if state is None:
+            return "Unknown"
+        return CHARGE_STATES.get(state, state)
+
